@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package openaimodel
+package completions
 
 import (
 	"errors"
 
 	"github.com/openai/openai-go/v3"
 	"google.golang.org/genai"
+
+	"google.golang.org/adk/v2/model/openaimodel/internal/shared"
 )
 
 // errToolCallChunkRejected reports a streamed tool-call delta the accumulator
@@ -26,7 +28,7 @@ import (
 // incomplete.
 var errToolCallChunkRejected = errors.New("openai: streamed tool call chunk could not be accumulated")
 
-// chatStreamTranslator turns Chat Completions chunks into genai responses while
+// streamTranslator turns Chat Completions chunks into genai responses while
 // accumulating the whole turn.
 //
 // Tool calls are not emitted as they stream. The protocol has no event marking
@@ -34,7 +36,7 @@ var errToolCallChunkRejected = errors.New("openai: streamed tool call chunk coul
 // stopped is the stream ending — so they reach the caller on the final response,
 // built from the accumulated snapshot by the same converter the blocking path
 // uses.
-type chatStreamTranslator struct {
+type streamTranslator struct {
 	acc openai.ChatCompletionAccumulator
 	// id is the first non-empty chunk id of the stream.
 	id string
@@ -46,14 +48,14 @@ type chatStreamTranslator struct {
 	usage *openai.CompletionUsage
 }
 
-// newChatStreamTranslator returns a translator for one streamed turn.
-func newChatStreamTranslator() *chatStreamTranslator {
-	return &chatStreamTranslator{}
+// newStreamTranslator returns a translator for one streamed turn.
+func newStreamTranslator() *streamTranslator {
+	return &streamTranslator{}
 }
 
 // process folds one chunk into the accumulated turn and reports the partial it
 // contributes, or nil for a chunk a caller sees nothing of.
-func (t *chatStreamTranslator) process(chunk openai.ChatCompletionChunk) (*genai.GenerateContentResponse, error) {
+func (t *streamTranslator) process(chunk openai.ChatCompletionChunk) (*genai.GenerateContentResponse, error) {
 	// One stream is one completion, so a provider varying the id per chunk
 	// must not have the accumulator refuse every chunk after the first; its
 	// guard against mixing completions has nothing to guard on one stream.
@@ -81,10 +83,10 @@ func (t *chatStreamTranslator) process(chunk openai.ChatCompletionChunk) (*genai
 	delta := chunk.Choices[0].Delta
 	switch {
 	case delta.Content != "":
-		return singlePartResponse(&genai.Part{Text: delta.Content}), nil
+		return shared.SinglePartResponse(&genai.Part{Text: delta.Content}), nil
 	case delta.Refusal != "":
 		// Blocking reports a refusal as text, so streaming does the same.
-		return singlePartResponse(&genai.Part{Text: delta.Refusal}), nil
+		return shared.SinglePartResponse(&genai.Part{Text: delta.Refusal}), nil
 	}
 	return nil, nil
 }
@@ -100,6 +102,6 @@ func carriesToolCall(chunk openai.ChatCompletionChunk) bool {
 }
 
 // completion is the whole turn as the blocking path would have received it.
-func (t *chatStreamTranslator) completion() *openai.ChatCompletion {
+func (t *streamTranslator) completion() *openai.ChatCompletion {
 	return &t.acc.ChatCompletion
 }
