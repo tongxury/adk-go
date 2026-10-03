@@ -21,6 +21,7 @@ import (
 
 	"google.golang.org/genai"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/internal/utils"
 	"google.golang.org/adk/v2/model"
@@ -55,7 +56,7 @@ func (s exampleTool) Name() string {
 
 // Description implements tool.Tool.
 func (s exampleTool) Description() string {
-	return "example tool"
+	return adk.ExampleToolDescription
 }
 
 // ProcessRequest adds the exampleTool examples to the LLM request.
@@ -79,31 +80,17 @@ func (t exampleTool) IsLongRunning() bool {
 	return false
 }
 
-const (
-	examplesIntro          = "<EXAMPLES>\nBegin few-shot\nThe following are examples of user queries and model responses using the available tools.\n\n"
-	examplesEnd            = "End few-shot\n<EXAMPLES>"
-	exampleStart           = "EXAMPLE %d:\nBegin example\n"
-	exampleEnd             = "End example\n\n"
-	userPrefix             = "[user]\n"
-	modelPrefix            = "[model]\n"
-	functionPrefix         = "```\n"
-	functionCallPrefix     = "```tool_code\n"
-	functionCallSuffix     = "\n```\n"
-	functionResponsePrefix = "```tool_outputs\n"
-	functionResponseSuffix = "\n```\n"
-)
-
 // Converts a list of examples to a string that can be used in a system instruction.
 func buildExamplesSystemInstruction(examples []*Example, model string) string {
 	var sb strings.Builder
-	sb.WriteString(examplesIntro)
+	sb.WriteString(adk.ExamplesIntro)
 	for exampleNum, example := range examples {
-		fmt.Fprintf(&sb, exampleStart, exampleNum+1)
-		sb.WriteString(userPrefix)
+		fmt.Fprintf(&sb, adk.ExampleStart, exampleNum+1)
+		sb.WriteString(adk.ExampleUserPrefix)
 		if example.Input != nil && len(example.Input.Parts) > 0 {
 			for _, part := range example.Input.Parts {
 				if part.Text != "" {
-					safeText := strings.ReplaceAll(part.Text, "End few-shot", "[PROTECTED]")
+					safeText := strings.ReplaceAll(part.Text, adk.ExamplesEndMarker, "[PROTECTED]")
 					sb.WriteString(safeText)
 					sb.WriteString("\n")
 				}
@@ -114,9 +101,9 @@ func buildExamplesSystemInstruction(examples []*Example, model string) string {
 		for _, content := range example.Output {
 			var role string
 			if content.Role == "model" {
-				role = modelPrefix
+				role = adk.ExampleModelPrefix
 			} else {
-				role = userPrefix
+				role = adk.ExampleUserPrefix
 			}
 			if role != previousRole {
 				sb.WriteString(role)
@@ -132,27 +119,27 @@ func buildExamplesSystemInstruction(examples []*Example, model string) string {
 							args = append(args, fmt.Sprintf("%s=%v", k, v))
 						}
 					}
-					prefix := functionPrefix
+					prefix := adk.ExampleFunctionPrefix
 					if gemini2 {
-						prefix = functionCallPrefix
+						prefix = adk.ExampleFunctionCallPrefix
 					}
-					fmt.Fprintf(&sb, "%s%s(%s)%s", prefix, part.FunctionCall.Name, strings.Join(args, ", "), functionCallSuffix)
+					fmt.Fprintf(&sb, "%s%s(%s)%s", prefix, part.FunctionCall.Name, strings.Join(args, ", "), adk.ExampleFunctionCallSuffix)
 				} else if part.FunctionResponse != nil {
-					prefix := functionPrefix
+					prefix := adk.ExampleFunctionPrefix
 					if gemini2 {
-						prefix = functionResponsePrefix
+						prefix = adk.ExampleFunctionResponsePrefix
 					}
-					fmt.Fprintf(&sb, "%s%v%s", prefix, part.FunctionResponse, functionResponseSuffix)
+					fmt.Fprintf(&sb, "%s%v%s", prefix, part.FunctionResponse, adk.ExampleFunctionResponseSuffix)
 				} else if part.Text != "" {
 					// SANITIZATION: Again, protect the boundary tags
-					safeText := strings.ReplaceAll(part.Text, "End few-shot", "[PROTECTED]")
+					safeText := strings.ReplaceAll(part.Text, adk.ExamplesEndMarker, "[PROTECTED]")
 					sb.WriteString(safeText)
 					sb.WriteString("\n")
 				}
 			}
 		}
-		sb.WriteString(exampleEnd)
+		sb.WriteString(adk.ExampleEnd)
 	}
-	sb.WriteString(examplesEnd)
+	sb.WriteString(adk.ExamplesEnd)
 	return sb.String()
 }

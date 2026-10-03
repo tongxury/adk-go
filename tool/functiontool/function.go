@@ -25,6 +25,7 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 	"google.golang.org/genai"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/internal/typeutil"
 	"google.golang.org/adk/v2/model"
@@ -171,7 +172,7 @@ func (f *functionTool[TArgs, TResults]) Declaration() *genai.FunctionDeclaration
 	}
 
 	if f.cfg.IsLongRunning {
-		instruction := "NOTE: This is a long-running operation. Do not call this tool again if it has already returned some intermediate or pending status."
+		instruction := adk.LongRunningToolInstruction
 		if decl.Description != "" {
 			decl.Description += "\n\n" + instruction
 		} else {
@@ -215,8 +216,7 @@ func (f *functionTool[TArgs, TResults]) Run(ctx agent.Context, args any) (result
 
 		if requireConfirmation {
 			err := ctx.RequestConfirmation(
-				fmt.Sprintf("Please approve or reject the tool call %s() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
-					f.Name()), nil)
+				fmt.Sprintf(adk.ToolConfirmationPromptTemplate, f.Name()), nil)
 			if err != nil {
 				return nil, err
 			}

@@ -25,17 +25,14 @@ import (
 	"strings"
 	"time"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/internal/utils"
 	"google.golang.org/adk/v2/memory"
 	"google.golang.org/adk/v2/model"
 )
 
-const preloadInstructions = `The following content is from your previous conversations with the user.
-They may be useful for answering the user's current query.
-<PAST_CONVERSATIONS>
-%s
-</PAST_CONVERSATIONS>`
+const preloadInstructions = adk.PreloadMemoryInstructions
 
 // preloadMemoryTool is a tool that preloads the memory for the current user.
 // It is automatically executed for each LLM request and will not be called
@@ -49,7 +46,7 @@ type preloadMemoryTool struct {
 func New() *preloadMemoryTool {
 	return &preloadMemoryTool{
 		name:        "preload_memory",
-		description: "Preloads relevant memory for the current user.",
+		description: adk.PreloadMemoryToolDescription,
 	}
 }
 

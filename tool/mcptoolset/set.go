@@ -21,6 +21,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/auth"
 	"google.golang.org/adk/v2/tool"
@@ -153,7 +154,7 @@ func (*set) Name() string {
 }
 
 func (*set) Description() string {
-	return "Connects to a MCP Server, retrieves MCP Tools into ADK Tools."
+	return adk.MCPToolsetDescription
 }
 
 func (*set) IsLongRunning() bool {

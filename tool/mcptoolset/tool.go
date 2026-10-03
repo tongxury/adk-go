@@ -24,6 +24,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/genai"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/internal/toolinternal"
 	"google.golang.org/adk/v2/model"
@@ -109,8 +110,7 @@ func (t *mcpTool) Run(ctx agent.Context, args any) (map[string]any, error) {
 
 		if requireConfirmation {
 			err := ctx.RequestConfirmation(
-				fmt.Sprintf("Please approve or reject the tool call %s() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
-					t.Name()), nil)
+				fmt.Sprintf(adk.ToolConfirmationPromptTemplate, t.Name()), nil)
 			if err != nil {
 				return nil, err
 			}

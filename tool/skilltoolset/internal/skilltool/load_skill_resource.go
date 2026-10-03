@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/google/jsonschema-go/jsonschema"
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/tool"
 	"google.golang.org/adk/v2/tool/functiontool"
@@ -28,8 +30,8 @@ const maxResourceSize = 10 * 1024 * 1024 // 10 MiB
 
 // LoadSkillResourceArgs represents the input for retrieving a resource out of a skill's resources.
 type LoadSkillResourceArgs struct {
-	SkillName    string `json:"skill_name" jsonschema:"The name of the skill."`
-	ResourcePath string `json:"resource_path" jsonschema:"The relative path to the resource (e.g., 'references/my_doc.md', 'assets/template.txt', or 'scripts/setup.sh')."`
+	SkillName    string `json:"skill_name"`
+	ResourcePath string `json:"resource_path"`
 }
 
 // LoadSkillResourceResult encapsulates the resource content.
@@ -41,10 +43,19 @@ type LoadSkillResourceResult struct {
 
 // LoadSkillResource creates a tool.Tool to load a resource file for a skill.
 func LoadSkillResource(source skill.Source) (tool.Tool, error) {
+	// 结构体标签只负责字段名；字段描述统一从 adk 常量注入，避免提示词散落在 tag 中。
+	inputSchema, err := jsonschema.For[LoadSkillResourceArgs](nil)
+	if err != nil {
+		return nil, fmt.Errorf("create load skill resource input schema: %w", err)
+	}
+	inputSchema.Properties["skill_name"].Description = adk.LoadSkillNameDescription
+	inputSchema.Properties["resource_path"].Description = adk.LoadSkillResourcePathDescription
+
 	return functiontool.New(
 		functiontool.Config{
 			Name:        "load_skill_resource",
-			Description: "Loads a resource file (e.g., from references/ or assets/) associated with the specified skill.",
+			Description: adk.LoadSkillResourceToolDescription,
+			InputSchema: inputSchema,
 		},
 		func(ctx agent.Context, args LoadSkillResourceArgs) (*LoadSkillResourceResult, error) {
 			return loadSkillResource(ctx, args, source)

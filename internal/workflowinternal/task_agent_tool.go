@@ -20,6 +20,7 @@ import (
 
 	"google.golang.org/genai"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/internal/llminternal"
 	"google.golang.org/adk/v2/internal/llminternal/googlellm"
@@ -83,8 +84,9 @@ func createTaskAgentFuncDeclaration(curAgent agent.Agent) *genai.FunctionDeclara
 		Name: curAgent.Name(),
 		Description: strings.TrimSpace(
 			fmt.Sprintf(
-				"%s\nIMPORTANT: This tool delegates execution to a specialized agent. Do NOT call this tool in parallel with any other tools.",
-				curAgent.Description())),
+				"%s\n%s",
+				curAgent.Description(),
+				adk.TaskAgentDelegationInstruction)),
 	}
 
 	agentInputSchema := getInputSchema(curAgent)
@@ -96,7 +98,7 @@ func createTaskAgentFuncDeclaration(curAgent agent.Agent) *genai.FunctionDeclara
 			Properties: map[string]*genai.Schema{
 				"request": {
 					Type:        "STRING",
-					Description: "Detailed instructions or context for the task sub-agent.",
+					Description: adk.TaskAgentRequestDescription,
 				},
 			},
 			Required: []string{"request"},

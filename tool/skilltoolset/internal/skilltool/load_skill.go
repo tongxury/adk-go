@@ -18,6 +18,8 @@ package skilltool
 import (
 	"fmt"
 
+	"github.com/google/jsonschema-go/jsonschema"
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/tool"
 	"google.golang.org/adk/v2/tool/functiontool"
@@ -26,7 +28,7 @@ import (
 
 // LoadSkillArgs represents the input to load a skill.
 type LoadSkillArgs struct {
-	Name string `json:"name" jsonschema:"The name of the skill to load."`
+	Name string `json:"name"`
 }
 
 type FrontmatterJSON struct {
@@ -47,10 +49,18 @@ type LoadSkillResult struct {
 
 // LoadSkill creates a tool.Tool to load a skill's instructions.
 func LoadSkill(source skill.Source) (tool.Tool, error) {
+	// 结构体标签只负责字段名；字段描述统一从 adk 常量注入，避免提示词散落在 tag 中。
+	inputSchema, err := jsonschema.For[LoadSkillArgs](nil)
+	if err != nil {
+		return nil, fmt.Errorf("create load skill input schema: %w", err)
+	}
+	inputSchema.Properties["name"].Description = adk.LoadSkillNameToLoadDescription
+
 	return functiontool.New(
 		functiontool.Config{
 			Name:        "load_skill",
-			Description: "Loads the SKILL.md instructions for a given skill.",
+			Description: adk.LoadSkillToolDescription,
+			InputSchema: inputSchema,
 		},
 		func(ctx agent.Context, args LoadSkillArgs) (*LoadSkillResult, error) {
 			return loadSkill(ctx, args, source)

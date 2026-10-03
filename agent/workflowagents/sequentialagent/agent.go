@@ -21,6 +21,7 @@ import (
 	"log"
 	"sync"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	agentinternal "google.golang.org/adk/v2/internal/agent"
 	"google.golang.org/adk/v2/internal/llminternal"
@@ -142,9 +143,9 @@ func (a *sequentialAgent) RunLive(ctx agent.InvocationContext) (agent.LiveSessio
 
 	taskCompletedTool, err := functiontool.New(functiontool.Config{
 		Name:        "task_completed",
-		Description: "Signals that the agent has successfully completed the user's question or task.",
+		Description: adk.SequentialTaskCompletedDescription,
 	}, func(ctx agent.Context, args taskCompletedArgs) (taskCompletedResults, error) {
-		return taskCompletedResults{Result: "Task completion signaled."}, nil
+		return taskCompletedResults{Result: adk.SequentialTaskCompletedResult}, nil
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create task_completed tool: %w", err)
@@ -169,8 +170,7 @@ func (a *sequentialAgent) RunLive(ctx agent.InvocationContext) (agent.LiveSessio
 				}
 				if !hasTaskCompleted {
 					state.Tools = append(state.Tools, taskCompletedTool)
-					instructionSuffix := "\nIf you finished the user's request according to its description, call the task_completed function to exit so the next agents can take over. When calling this function, do not generate any text other than the function call."
-					state.Instruction += instructionSuffix
+					state.Instruction += adk.SequentialTaskCompletedInstruction
 				}
 			} else if _, live := subAgent.(liveRunner); live && len(subAgent.SubAgents()) > 0 {
 				injectSubAgents(subAgent.SubAgents())

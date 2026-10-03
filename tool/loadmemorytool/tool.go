@@ -20,6 +20,7 @@ package loadmemorytool
 import (
 	"fmt"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/genai"
 
 	"google.golang.org/adk/v2/agent"
@@ -30,8 +31,7 @@ import (
 	"google.golang.org/adk/v2/tool/toolutils"
 )
 
-const memoryInstructions = `You have memory. You can use it to answer questions. If any questions need
-you to look up the memory, you should call load_memory function with a query.`
+const memoryInstructions = adk.LoadMemoryInstructions
 
 type loadMemoryTool struct {
 	name        string
@@ -42,7 +42,7 @@ type loadMemoryTool struct {
 func New() toolinternal.FunctionTool {
 	return &loadMemoryTool{
 		name:        "load_memory",
-		description: "Loads the memory for the current user.",
+		description: adk.LoadMemoryToolDescription,
 	}
 }
 
@@ -71,7 +71,7 @@ func (t *loadMemoryTool) Declaration() *genai.FunctionDeclaration {
 			Properties: map[string]*genai.Schema{
 				"query": {
 					Type:        "STRING",
-					Description: "The query to search memory for.",
+					Description: adk.LoadMemoryQueryDescription,
 				},
 			},
 			Required: []string{"query"},

@@ -25,6 +25,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/genai"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/internal/utils"
 	"google.golang.org/adk/v2/model"
@@ -42,7 +43,7 @@ type artifactsTool struct {
 func New() tool.Tool {
 	return &artifactsTool{
 		name:        "load_artifacts",
-		description: "Loads the artifacts and adds them to the session.",
+		description: adk.LoadArtifactsToolDescription,
 	}
 }
 
@@ -142,13 +143,7 @@ func (t *artifactsTool) appendInitialInstructions(ctx agent.Context, req *model.
 	if err != nil {
 		return fmt.Errorf("failed to marshal artifact names: %w", err)
 	}
-	instructions := fmt.Sprintf(
-		"You have a list of artifacts:\n  %s\n\nWhen the user asks questions about"+
-			" any of the artifacts, you should call the `load_artifacts` function"+
-			" to load the artifact. Do not generate any text other than the"+
-			" function call. Whenever you are asked about artifacts, you"+
-			" should first load it. You must always load an artifact to access its"+
-			" content, even if it has been loaded before.", string(artifactNamesJSON))
+	instructions := fmt.Sprintf(adk.LoadArtifactsInstructionsTemplate, string(artifactNamesJSON))
 
 	utils.AppendInstructions(req, instructions)
 	return nil

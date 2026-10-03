@@ -24,6 +24,7 @@ import (
 	"github.com/google/safehtml/template"
 	"google.golang.org/genai"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/internal/agent/parentmap"
 	"google.golang.org/adk/v2/internal/toolinternal"
@@ -121,8 +122,7 @@ func NewTransferToAgentTool(ctx agent.InvocationContext, curAgent, parent agent.
 
 // Description implements tool.Tool.
 func (t *TransferToAgentTool) Description() string {
-	return `Transfer the question to another agent.
-This tool hands off control to another agent when it's more suitable to answer the user's question according to the agent's description.`
+	return adk.TransferToAgentToolDescription
 }
 
 // Name implements tool.Tool.
@@ -144,7 +144,7 @@ func (t *TransferToAgentTool) Declaration() *genai.FunctionDeclaration {
 			Properties: map[string]*genai.Schema{
 				"agent_name": {
 					Type:        genai.TypeString,
-					Description: "the agent name to transfer to",
+					Description: adk.TransferToAgentNameDescription,
 					Enum:        t.enums(),
 				},
 			},
@@ -307,7 +307,7 @@ func appendTools(r *model.LLMRequest, tools ...tool.Tool) error {
 }
 
 var transferToAgentPromptTmpl = template.Must(
-	template.New("transfer_to_agent_prompt").Parse(agentTransferInstructionTemplate))
+	template.New("transfer_to_agent_prompt").Parse(adk.TransferToAgentInstructionTemplate))
 
 func instructionsForTransferToAgent(ctx agent.InvocationContext, curAgent, parent agent.Agent, targets []agent.Agent) (string, error) {
 	cur := asLLMAgent(curAgent)
@@ -354,28 +354,3 @@ func formatTargets(targets []agent.Agent) string {
 	}
 	return strings.Join(formattedAgentNames, ", ")
 }
-
-// Prompt source:
-//  flows/llm_flows/agent_transfer.py _build_target_agents_instructions.
-
-const agentTransferInstructionTemplate = `
-You have a list of other agents to transfer to:
-
-{{range .Targets}}
-Agent name: {{.Name}}
-Agent description: {{.Description}}
-
-{{end}}
-If you are the best to answer the question according to your description,
-you can answer it.
-
-If another agent is better for answering the question according to its
-description, call ` + "`" + `{{.ToolName}}` + "`" + ` function to transfer the question to that
-agent. When transferring, do not generate any text other than the function
-call.
-
-**NOTE**: the only available agents for ` + "`" + `{{.ToolName}}` + "`" + ` function are
-{{.FormattedTargets}}.
-{{if .Parent}}
-If neither you nor the other agents are best for the question, transfer to your parent agent {{.Parent.Name}}.
-{{end}}`

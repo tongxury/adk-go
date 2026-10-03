@@ -19,6 +19,7 @@ import (
 	"iter"
 	"strings"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/internal/utils"
 	"google.golang.org/adk/v2/model"
@@ -36,9 +37,9 @@ func identityRequestProcessor(ctx agent.InvocationContext, req *model.LLMRequest
 			return
 		}
 
-		parts := []string{fmt.Sprintf("You are an agent. Your internal name is %q.", ctx.Agent().Name())}
+		parts := []string{fmt.Sprintf(adk.IdentityInstructionTemplate, ctx.Agent().Name())}
 		if description := ctx.Agent().Description(); description != "" {
-			parts = append(parts, fmt.Sprintf("The description about you is %q.", description))
+			parts = append(parts, fmt.Sprintf(adk.IdentityDescriptionTemplate, description))
 		}
 		si := strings.Join(parts, " ")
 

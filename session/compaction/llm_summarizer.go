@@ -23,6 +23,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/genai"
 
 	"google.golang.org/adk/v2/internal/llminternal/googlellm"
@@ -33,7 +34,7 @@ import (
 
 // ConversationHistoryPlaceholder is the token an [LLMSummarizer] prompt
 // template must contain. It is replaced with the rendered event transcript.
-const ConversationHistoryPlaceholder = "{conversation_history}"
+const ConversationHistoryPlaceholder = adk.ConversationHistoryPlaceholder
 
 // defaultPromptTemplate is the prompt [LLMSummarizer] uses when none is given.
 //
@@ -62,25 +63,7 @@ const ConversationHistoryPlaceholder = "{conversation_history}"
 // within a few passes and now has a prompt arguing for its retention. It cannot
 // forge a turn -- formatEvents escapes newlines, so a tool response cannot
 // impersonate a speaker -- but it can persist longer than it used to.
-const defaultPromptTemplate = "The following is a conversation history between a user and an AI agent." +
-	" It may or may not start from a compacted history. Please identify and" +
-	" reiterate the user request, summarize the context so far, focusing on" +
-	" key decisions made and information obtained, as well as any unresolved" +
-	" questions or tasks. " +
-	"CRITICAL INSTRUCTIONS: " +
-	"1. Explicitly identify and state the primary language used by the user " +
-	`at the top of your summary (e.g., "Conversation Language: English"). ` +
-	"2. If the agent called any tools, accurately list the exact tool names " +
-	"used to maintain tool grounding. " +
-	`3. Maintain a section titled "Durable facts" listing every concrete ` +
-	"detail the user has stated: identifiers, names, dates, numbers, chosen " +
-	"options and the reasons given for them. Copy each one verbatim. This " +
-	"history may already be a summary of a summary, so any durable fact " +
-	"present in the history MUST be carried forward unchanged, even if it is " +
-	"old and the recent turns are about something else. Never drop or " +
-	"generalize a durable fact to save space; drop narrative instead. " +
-	"The rest of the summary should be concise and capture the" +
-	" essence of the interaction.\n\n" + ConversationHistoryPlaceholder
+const defaultPromptTemplate = adk.DefaultCompactionPromptTemplate
 
 // defaultMaxToolContentChars caps how much of a single tool call's arguments or
 // response is rendered into the summarizer prompt.

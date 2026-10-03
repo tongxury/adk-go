@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/internal/utils"
 	"google.golang.org/adk/v2/model"
@@ -31,20 +32,7 @@ import (
 
 const (
 	defaultName                   string = "SkillToolset"
-	defaultSkillSystemInstruction string = `You can use specialized 'skills' to help you with complex tasks. You MUST use the skill tools to interact with these skills.
-
-Skills are folders of instructions and resources that extend your capabilities for specialized tasks. Each skill folder contains:
-- **SKILL.md** (required): The main instruction file with skill metadata and detailed markdown instructions.
-- **references/** (Optional): Additional documentation or examples for skill usage.
-- **assets/** (Optional): Templates, scripts or other resources used by the skill.
-- **scripts/** (Optional): Executable scripts that can be run via bash.
-
-This is very important:
-
-` +
-		"1. If a skill seems relevant to the current user query, you MUST use the `load_skill` tool with `name=\"<SKILL_NAME>\"` to read its full instructions before proceeding.\n" +
-		"2. Once you have read the instructions, follow them exactly as documented before replying to the user. For example, If the instruction lists multiple steps, please make sure you complete all of them in order.\n" +
-		"3. The `load_skill_resource` tool is for viewing files within a skill's directory (e.g., `references/*`, `assets/*`, `scripts/*`). Do NOT use other tools to access these files.\n"
+	defaultSkillSystemInstruction string = adk.SkillToolsetDefaultSystemInstruction
 )
 
 // Config holds the configuration for creating a Skill Toolset.

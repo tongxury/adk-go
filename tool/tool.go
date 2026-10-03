@@ -24,6 +24,7 @@ import (
 
 	"google.golang.org/genai"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/model"
 	"google.golang.org/adk/v2/tool/toolutils"
@@ -205,8 +206,7 @@ func confirmCall(ctx agent.Context, t Tool, args any, requireConfirmation bool, 
 	}
 
 	if err := ctx.RequestConfirmation(
-		fmt.Sprintf("Please approve or reject the tool call %s() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
-			t.Name()), nil); err != nil {
+		fmt.Sprintf(adk.ToolConfirmationPromptTemplate, t.Name()), nil); err != nil {
 		return err
 	}
 	ctx.Actions().SkipSummarization = true

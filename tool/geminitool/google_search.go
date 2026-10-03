@@ -17,6 +17,7 @@ package geminitool
 import (
 	"google.golang.org/genai"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/model"
 )
@@ -34,7 +35,7 @@ func (s GoogleSearch) Name() string {
 
 // Description implements tool.Tool.
 func (s GoogleSearch) Description() string {
-	return "Performs a Google search to retrieve information from the web."
+	return adk.GoogleSearchToolDescription
 }
 
 // ProcessRequest adds the GoogleSearch tool to the LLM request.
