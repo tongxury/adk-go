@@ -18,6 +18,7 @@ package exitlooptool
 import (
 	"fmt"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/tool"
 	"google.golang.org/adk/v2/tool/functiontool"
@@ -33,7 +34,7 @@ func exitLoop(ctx agent.Context, myArgs struct{}) (map[string]string, error) {
 func New() (tool.Tool, error) {
 	exitLoopTool, err := functiontool.New(functiontool.Config{
 		Name:        "exit_loop",
-		Description: "Exits the loop.\n\nCall this function only when you are instructed to do so.\n",
+		Description: adk.ExitLoopToolDescription,
 	}, exitLoop)
 	if err != nil {
 		return nil, fmt.Errorf("error creating exit loop tool: %w", err)

@@ -21,6 +21,7 @@ import (
 
 	"google.golang.org/genai"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/internal/llminternal/googlellm"
 	"google.golang.org/adk/v2/internal/utils"
@@ -30,11 +31,8 @@ import (
 )
 
 const (
-	instructionForProcessor = "IMPORTANT: You have access to other tools, but you must provide " +
-		"your final response using the set_model_response tool with the " +
-		"required structured format. After using any other tools needed " +
-		"to complete the task, always call set_model_response with your " +
-		"final answer in the specified schema format."
+	// 保留本地别名，避免内部测试和已有调用点因常量迁移而失去可读性。
+	instructionForProcessor = adk.OutputSchemaInstruction
 )
 
 // outputSchemaRequestProcessor adds the set_model_response tool to handle structured output.
@@ -119,7 +117,7 @@ func (t *setModelResponseTool) Name() string {
 }
 
 func (t *setModelResponseTool) Description() string {
-	return "Set your final response using the required output schema. Use this tool to provide your final structured answer instead of outputting text directly."
+	return adk.SetModelResponseToolDescription
 }
 
 func (t *setModelResponseTool) IsLongRunning() bool {

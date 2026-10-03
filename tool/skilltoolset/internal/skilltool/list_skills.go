@@ -18,6 +18,7 @@ import (
 	"html"
 	"strings"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/tool"
 	"google.golang.org/adk/v2/tool/functiontool"
@@ -37,7 +38,7 @@ func ListSkills(source skill.Source) (tool.Tool, error) {
 	return functiontool.New(
 		functiontool.Config{
 			Name:        "list_skills",
-			Description: "Lists all available skills with their names and descriptions.",
+			Description: adk.ListSkillsToolDescription,
 		},
 		func(ctx agent.Context, args ListSkillsArgs) (*ListSkillsResult, error) {
 			return listSkills(ctx, args, source)
