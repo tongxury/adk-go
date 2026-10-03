@@ -20,6 +20,7 @@ import (
 
 	"google.golang.org/genai"
 
+	adk "google.golang.org/adk/v2"
 	"google.golang.org/adk/v2/agent"
 	"google.golang.org/adk/v2/internal/llminternal"
 	"google.golang.org/adk/v2/internal/utils"
@@ -30,7 +31,7 @@ import (
 
 const (
 	FinishTaskToolName      = "finish_task"
-	FinishTaskSuccessResult = "Task completed."
+	FinishTaskSuccessResult = adk.FinishTaskSuccessResult
 )
 
 // NewFinishTaskTool allows the model to signal that the agent has completed its
@@ -62,7 +63,7 @@ func NewFinishTaskTool(taskAgent agent.Agent) (tool.Tool, error) {
 			Properties: map[string]*genai.Schema{
 				defaultWrapperKey: {
 					Type:        genai.TypeString,
-					Description: "A brief summary of what the agent accomplished.",
+					Description: adk.FinishTaskOutputDescription,
 				},
 			},
 			Required: []string{defaultWrapperKey},
@@ -83,9 +84,9 @@ func NewFinishTaskTool(taskAgent agent.Agent) (tool.Tool, error) {
 		}
 	}
 
-	newTool.description = "Signal that this agent has completed its delegated task. Call this when you have finished your delegated task."
+	newTool.description = adk.FinishTaskToolDescription
 	if llmAgentState.OutputSchema != nil {
-		newTool.description += " Pass the required output data in the parameters."
+		newTool.description += adk.FinishTaskOutputDataSuffix
 	}
 
 	return newTool, nil
@@ -138,15 +139,7 @@ func (t *FinishTaskTool) Declaration() *genai.FunctionDeclaration {
 }
 
 func (t *FinishTaskTool) ProcessRequest(ctx agent.Context, req *model.LLMRequest) error {
-	instructions := `
-Do NOT call 'finish_task' prematurely. Use your available tools to
-fully complete every aspect of the delegated task first. If the
-task is unclear, ask the user for clarification before proceeding.
-Once the task is fully complete, call 'finish_task' by itself with
-no accompanying text output.
-`
-
-	utils.AppendInstructions(req, instructions)
+	utils.AppendInstructions(req, adk.FinishTaskInstruction)
 
 	return toolutils.PackTool(req, t)
 }
@@ -164,9 +157,7 @@ func (t *FinishTaskTool) Run(ctx agent.Context, args any) (map[string]any, error
 	if err := t.validateArgs(m); err != nil {
 		return map[string]any{
 			"error": fmt.Sprintf(
-				"Invoking `%s()` failed due to validation errors:\n%s\n"+
-					"You could retry calling this tool, but it is IMPORTANT for you"+
-					" to provide all the mandatory parameters with correct types.",
+				adk.FinishTaskValidationErrorTemplate,
 				t.Name(), err,
 			),
 		}, nil
