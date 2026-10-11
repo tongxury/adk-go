@@ -116,7 +116,9 @@ func TestMCPToolSet(t *testing.T) {
 
 	wantEvents := []*session.Event{
 		{
-			Author:   "weather_time_agent",
+			Author: "weather_time_agent",
+			// Model and tool events both carry the agent's model annotation.
+			Metadata: map[string]any{"model": "gemini-2.5-flash"},
 			NodeInfo: &session.NodeInfo{Path: "weather_time_agent"},
 			LLMResponse: model.LLMResponse{
 				Content: &genai.Content{
@@ -134,7 +136,9 @@ func TestMCPToolSet(t *testing.T) {
 			},
 		},
 		{
-			Author:   "weather_time_agent",
+			Author: "weather_time_agent",
+			// Model and tool events both carry the agent's model annotation.
+			Metadata: map[string]any{"model": "gemini-2.5-flash"},
 			NodeInfo: &session.NodeInfo{Path: "weather_time_agent"},
 			LLMResponse: model.LLMResponse{
 				Content: &genai.Content{
@@ -153,7 +157,9 @@ func TestMCPToolSet(t *testing.T) {
 			},
 		},
 		{
-			Author:   "weather_time_agent",
+			Author: "weather_time_agent",
+			// Model and tool events both carry the agent's model annotation.
+			Metadata: map[string]any{"model": "gemini-2.5-flash"},
 			NodeInfo: &session.NodeInfo{Path: "weather_time_agent"},
 			LLMResponse: model.LLMResponse{
 				Content: &genai.Content{

@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"google.golang.org/adk/v2/agent"
+	"google.golang.org/adk/v2/model"
+	"google.golang.org/adk/v2/session"
 	"google.golang.org/adk/v2/tool"
 	"google.golang.org/adk/v2/tool/functiontool"
 )
@@ -29,6 +31,44 @@ type (
 
 func dummyHandler(ctx agent.Context, args dummyArgs) (dummyResult, error) {
 	return dummyResult{}, nil
+}
+
+// metadataStubLLM supplies only a name: annotation must never invoke a model.
+type metadataStubLLM struct{ model.LLM }
+
+func (metadataStubLLM) Name() string { return "configured-model" }
+
+func TestSetModelMetadataOwnership(t *testing.T) {
+	a, err := New(Config{Name: "owner", Model: metadataStubLLM{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	llm := a.(*llmAgent)
+	shared := map[string]any{"trace": "retained"}
+	// The producer may reuse an annotation map. Each event must own its model
+	// annotation without modifying that map or a previously emitted event.
+	ev := &session.Event{Author: "owner", Metadata: shared, LLMResponse: model.LLMResponse{ModelVersion: "response-model"}}
+	llm.setModelMetadata(ev)
+	if ev.Metadata["model"] != "configured-model" || ev.Metadata["trace"] != "retained" || ev.ModelVersion != "response-model" {
+		t.Fatal("annotation lost its configured model, other metadata or response version")
+	}
+	if _, ok := shared["model"]; ok {
+		t.Error("annotation modified the producer's shared metadata map")
+	}
+	child := &session.Event{Author: "child", Metadata: map[string]any{"model": "child-model"}}
+	llm.setModelMetadata(child)
+	if child.Metadata["model"] != "child-model" {
+		t.Error("parent replaced a child event's model")
+	}
+	llm.setModelMetadata(nil)
+	// A missing LLM is valid at construction time; annotation must not panic or
+	// invent a model for callback-only events owned by such an agent.
+	llm.model = nil
+	unconfigured := &session.Event{Author: "owner"}
+	llm.setModelMetadata(unconfigured)
+	if unconfigured.Metadata != nil {
+		t.Error("annotation invented a model for an unconfigured agent")
+	}
 }
 
 func TestNew_ClonesToolsSlice(t *testing.T) {

@@ -21,6 +21,7 @@ package llmagent
 import (
 	"fmt"
 	"iter"
+	"maps"
 	"slices"
 	"strings"
 
@@ -444,6 +445,20 @@ type llmAgent struct {
 
 type agentState = agentinternal.State
 
+// Run annotates the base agent's complete event stream, including events
+// produced by BeforeAgent/AfterAgent callbacks without entering the LLM flow.
+// Author matching in setModelMetadata leaves forwarded child events untouched.
+func (a *llmAgent) Run(ctx agent.InvocationContext) iter.Seq2[*session.Event, error] {
+	return func(yield func(*session.Event, error) bool) {
+		for ev, err := range a.Agent.Run(ctx) {
+			a.setModelMetadata(ev)
+			if !yield(ev, err) {
+				return
+			}
+		}
+	}
+}
+
 func (a *llmAgent) run(ctx agent.InvocationContext) iter.Seq2[*session.Event, error] {
 	var ag agent.Agent = a
 	ctx = ctx.WithICDelta(&agent.InvocationContextDelta{Agent: &ag})
@@ -503,6 +518,7 @@ func (a *llmAgent) RunLive(ctx agent.InvocationContext) (agent.LiveSession, iter
 	wrappedIter := func(yield func(*session.Event, error) bool) {
 		for ev, err := range innerIter {
 			if err == nil {
+				a.setModelMetadata(ev)
 				a.maybeSaveOutputToState(ev)
 			}
 			if !yield(ev, err) {
@@ -512,6 +528,23 @@ func (a *llmAgent) RunLive(ctx agent.InvocationContext) (agent.LiveSession, iter
 	}
 
 	return sess, wrappedIter, nil
+}
+
+// setModelMetadata annotates all events owned by this LLM agent, including
+// streaming chunks, tool results, confirmation requests and synthesized output.
+// Transfers forward child events through the parent, so author matching is
+// essential: a parent's model must never overwrite a child's annotation.
+func (a *llmAgent) setModelMetadata(ev *session.Event) {
+	if ev == nil || ev.Author != a.Name() || a.model == nil {
+		return
+	}
+	// Own the top-level map before writing; callbacks may reuse their annotation
+	// map across events. Keep their other annotations and response ModelVersion.
+	ev.Metadata = maps.Clone(ev.Metadata)
+	if ev.Metadata == nil {
+		ev.Metadata = make(map[string]any)
+	}
+	ev.Metadata["model"] = a.model.Name()
 }
 
 // maybeSaveOutputToState saves the model output to state if needed. skip if the event

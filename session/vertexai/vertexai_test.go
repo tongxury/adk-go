@@ -381,6 +381,9 @@ func TestEventNeedsRawEvent(t *testing.T) {
 		{name: "with node info", event: &session.Event{NodeInfo: &session.NodeInfo{Path: "wf"}}, want: true},
 		{name: "with isolation scope", event: &session.Event{IsolationScope: "s"}, want: true},
 		{name: "with routes", event: &session.Event{Routes: []string{"approve"}}, want: true},
+		// Annotations require raw_event even when no workflow fields are present.
+		{name: "with event metadata", event: &session.Event{Metadata: map[string]any{"model": "configured-model"}}, want: true},
+		{name: "with empty event metadata", event: &session.Event{Metadata: map[string]any{}}, want: false},
 		{name: "with requested input", event: &session.Event{
 			RequestedInput: &session.RequestInput{InterruptID: "i"},
 		}, want: true},

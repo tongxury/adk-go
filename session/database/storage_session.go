@@ -85,10 +85,12 @@ type storageEvent struct {
 	RoutesJSON             dynamicJSON
 	OutputJSON             dynamicJSON
 	NodeInfoJSON           dynamicJSON
-	RequestedInputJSON     dynamicJSON
-	Branch                 *string
-	IsolationScope         *string
-	Timestamp              time.Time `gorm:"precision:6"`
+	// Event annotations have their own column; they are not session state or LLM response metadata.
+	MetadataJSON       dynamicJSON
+	RequestedInputJSON dynamicJSON
+	Branch             *string
+	IsolationScope     *string
+	Timestamp          time.Time `gorm:"precision:6"`
 
 	// Fields from llm_response
 	Content           dynamicJSON
@@ -168,6 +170,16 @@ func createStorageEvent(session session.Session, event *session.Event) (*storage
 			return nil, fmt.Errorf("failed to marshal node info: %w", err)
 		}
 		storageEv.NodeInfoJSON = nodeInfoJSON
+	}
+
+	// Persist annotations independently of CustomMetadata, which belongs to the
+	// model response. Older events leave this nullable column empty.
+	if len(event.Metadata) > 0 {
+		metadataJSON, err := json.Marshal(event.Metadata)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal event metadata: %w", err)
+		}
+		storageEv.MetadataJSON = metadataJSON
 	}
 
 	if event.RequestedInput != nil {
@@ -344,6 +356,13 @@ func createEventFromStorageEvent(se *storageEvent) (*session.Event, error) {
 	}
 
 	var requestedInput *session.RequestInput
+	// A missing column value on historical records decodes to nil annotations.
+	var metadata map[string]any
+	if len(se.MetadataJSON) > 0 {
+		if err := json.Unmarshal(se.MetadataJSON, &metadata); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal event metadata: %w", err)
+		}
+	}
 	if se.RequestedInputJSON != nil {
 		if err := json.Unmarshal([]byte(se.RequestedInputJSON), &requestedInput); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal requested input: %w", err)
@@ -374,6 +393,7 @@ func createEventFromStorageEvent(se *storageEvent) (*session.Event, error) {
 		Output:             output,
 		NodeInfo:           nodeInfo,
 		RequestedInput:     requestedInput,
+		Metadata:           metadata,
 		LLMResponse: model.LLMResponse{
 			Content:             content,
 			GroundingMetadata:   groundingMetadata,

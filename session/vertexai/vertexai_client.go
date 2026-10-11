@@ -366,6 +366,9 @@ func eventNeedsRawEvent(event *session.Event) bool {
 		event.IsolationScope != "" ||
 		event.RequestedInput != nil ||
 		len(event.Routes) > 0 ||
+		// Vertex's legacy response metadata cannot represent event annotations;
+		// use the full event blob so Metadata survives a session reload.
+		len(event.Metadata) > 0 ||
 		// A context-compaction summary lives entirely on Actions.Compaction:
 		// its Content is nil and it has no state or artifact delta, so without
 		// raw_event nothing about it reaches the backend. On reload the session

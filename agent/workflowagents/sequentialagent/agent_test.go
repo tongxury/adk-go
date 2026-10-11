@@ -59,6 +59,8 @@ func TestNewSequentialAgent(t *testing.T) {
 			wantEvents: []*session.Event{
 				{
 					Author: "custom_agent_0",
+					// Forwarded LLM events retain the originating model annotation.
+					Metadata: map[string]any{"model": "fake-llm"},
 					LLMResponse: model.LLMResponse{
 						Content: &genai.Content{
 							Parts: []*genai.Part{
@@ -74,6 +76,8 @@ func TestNewSequentialAgent(t *testing.T) {
 				},
 				{
 					Author: "custom_agent_1",
+					// Forwarded LLM events retain the originating model annotation.
+					Metadata: map[string]any{"model": "fake-llm"},
 					LLMResponse: model.LLMResponse{
 						Content: &genai.Content{
 							Parts: []*genai.Part{
@@ -98,6 +102,8 @@ func TestNewSequentialAgent(t *testing.T) {
 			wantEvents: []*session.Event{
 				{
 					Author: "custom_agent_0",
+					// Forwarded LLM events retain the originating model annotation.
+					Metadata: map[string]any{"model": "fake-llm"},
 					LLMResponse: model.LLMResponse{
 						Content: &genai.Content{
 							Parts: []*genai.Part{
@@ -113,6 +119,8 @@ func TestNewSequentialAgent(t *testing.T) {
 				},
 				{
 					Author: "custom_agent_1",
+					// Forwarded LLM events retain the originating model annotation.
+					Metadata: map[string]any{"model": "fake-llm"},
 					LLMResponse: model.LLMResponse{
 						Content: &genai.Content{
 							Parts: []*genai.Part{
@@ -128,6 +136,8 @@ func TestNewSequentialAgent(t *testing.T) {
 				},
 				{
 					Author: "custom_agent_2",
+					// Forwarded LLM events retain the originating model annotation.
+					Metadata: map[string]any{"model": "fake-llm"},
 					LLMResponse: model.LLMResponse{
 						Content: &genai.Content{
 							Parts: []*genai.Part{
@@ -143,6 +153,8 @@ func TestNewSequentialAgent(t *testing.T) {
 				},
 				{
 					Author: "custom_agent_3",
+					// Forwarded LLM events retain the originating model annotation.
+					Metadata: map[string]any{"model": "fake-llm"},
 					LLMResponse: model.LLMResponse{
 						Content: &genai.Content{
 							Parts: []*genai.Part{
