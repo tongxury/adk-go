@@ -49,7 +49,9 @@ func TestRawEventWireKeysAreCamelCase(t *testing.T) {
 		RequestedInput:     &session.RequestInput{InterruptID: "approval-1", Message: "Approve?"},
 		Output:             map[string]any{"summary": "ok"},
 		NodeInfo:           &session.NodeInfo{Path: "wf/planner", MessageAsOutput: true},
-		Actions:            session.EventActions{StateDelta: map[string]any{"stage": "drafted"}},
+		// This Go extension must remain on the event blob, distinct from customMetadata.
+		Metadata: map[string]any{"model": "configured-model"},
+		Actions:  session.EventActions{StateDelta: map[string]any{"stage": "drafted"}},
 	}
 
 	raw, err := eventToRawEvent(event)
@@ -64,11 +66,20 @@ func TestRawEventWireKeysAreCamelCase(t *testing.T) {
 
 	want := []string{
 		"actions", "author", "branch", "content", "id", "inputTranscription",
-		"invocationId", "isolationScope", "longRunningToolIds", "nodeInfo",
+		// Keep both live transcription fields and custom metadata on the shared wire format.
+		"invocationId", "isolationScope", "longRunningToolIds", "metadata", "nodeInfo",
 		"output", "outputTranscription", "requestedInput", "routes", "timestamp",
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("raw_event wire keys mismatch (-want +got):\n%s", diff)
+	}
+	// Decode through the same raw_event route used when reloading a Vertex session.
+	reloaded, err := eventFromRawEvent(raw)
+	if err != nil {
+		t.Fatalf("eventFromRawEvent() failed: %v", err)
+	}
+	if reloaded.Metadata["model"] != "configured-model" {
+		t.Error("event metadata was lost during raw_event round trip")
 	}
 }
 

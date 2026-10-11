@@ -58,10 +58,26 @@ func Test_databaseService_CreateUsesProviders(t *testing.T) {
 	}
 }
 
+// Metadata must be JSON-serializable; conversion failures must be reported
+// instead of silently losing annotations or returning a partially decoded event.
+func TestDatabaseEventMetadataErrors(t *testing.T) {
+	created, err := emptyService(t).Create(t.Context(), &session.CreateRequest{AppName: "app", UserID: "user"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = createStorageEvent(created.Session, &session.Event{Metadata: map[string]any{"invalid": make(chan int)}})
+	if err == nil || !strings.Contains(err.Error(), "failed to marshal event metadata") {
+		t.Error("non-JSON metadata was not rejected by serialization")
+	}
+	_, err = createEventFromStorageEvent(&storageEvent{Actions: []byte("{}"), MetadataJSON: dynamicJSON("{")})
+	if err == nil || !strings.Contains(err.Error(), "failed to unmarshal event metadata") {
+		t.Error("malformed metadata was not rejected by deserialization")
+	}
+}
+
 // TestDatabaseService_AppendEvent_WorkflowFieldsRoundTrip guards that
-// the storage layer serializes/deserializes the workflow event fields
-// (NodeInfo, RequestedInput, Routes, IsolationScope); dropping them
-// breaks HITL resume and scope-isolated history.
+// the storage layer serializes/deserializes workflow fields and event annotations;
+// dropping these breaks resumed workflows or loses model attribution.
 func TestDatabaseService_AppendEvent_WorkflowFieldsRoundTrip(t *testing.T) {
 	ctx := t.Context()
 	s := emptyService(t)
@@ -78,6 +94,8 @@ func TestDatabaseService_AppendEvent_WorkflowFieldsRoundTrip(t *testing.T) {
 		RequestedInput: &session.RequestInput{InterruptID: "ask_name", Message: "What's your name?"},
 		Routes:         []string{"route_a"},
 		IsolationScope: "task-1",
+		// Annotations must survive SQL serialization without updating state.
+		Metadata: map[string]any{"model": "configured-model"},
 	}
 	if err := s.AppendEvent(ctx, created.Session, event); err != nil {
 		t.Fatalf("AppendEvent: %v", err)
@@ -92,6 +110,12 @@ func TestDatabaseService_AppendEvent_WorkflowFieldsRoundTrip(t *testing.T) {
 		t.Fatalf("got %d events, want 1", evs.Len())
 	}
 	ev := evs.At(0)
+	if ev.Metadata["model"] != "configured-model" {
+		t.Error("event metadata was not persisted")
+	}
+	if _, err := got.Session.State().Get("model"); err == nil {
+		t.Error("event metadata unexpectedly updated session state")
+	}
 	if ev.NodeInfo == nil || ev.NodeInfo.Path != "ask_name" {
 		t.Errorf("NodeInfo not persisted: %#v", ev.NodeInfo)
 	}

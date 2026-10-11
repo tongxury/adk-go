@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"iter"
 	"log"
+	"maps"
 	"reflect"
 	"slices"
 	"sort"
@@ -967,6 +968,9 @@ func cloneEvent(e *session.Event) *session.Event {
 		Author:         e.Author,
 		Actions:        e.Actions,
 		LLMResponse:    e.LLMResponse,
+		// Prompt-history transformations must retain annotations without sharing
+		// the mutable top-level map with the stored event.
+		Metadata: maps.Clone(e.Metadata),
 	}
 
 	// 2. Deep copy the LongRunningToolIDs slice

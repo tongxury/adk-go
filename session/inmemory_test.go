@@ -121,6 +121,8 @@ func TestInMemorySession_AppendEvent_WorkflowFieldsRoundTrip(t *testing.T) {
 		ID:             "wf_event",
 		Author:         "agent",
 		IsolationScope: wantScope,
+		// Diagnostics belong to the event and must not become session state.
+		Metadata:       map[string]any{"model": "configured-model"},
 		NodeInfo:       &session.NodeInfo{Path: "ask_name"},
 		RequestedInput: &session.RequestInput{InterruptID: "ask_name", Message: "What's your name?"},
 		Routes:         []string{"route_a"},
@@ -138,6 +140,18 @@ func TestInMemorySession_AppendEvent_WorkflowFieldsRoundTrip(t *testing.T) {
 		t.Fatalf("got %d events, want 1", evs.Len())
 	}
 	ev := evs.At(0)
+	if ev.Metadata["model"] != "configured-model" {
+		t.Error("event metadata was not persisted")
+	}
+	// The canonical record owns its map, so changing the producer's annotation
+	// after append cannot change a subsequently reloaded event.
+	event.Metadata["model"] = "changed"
+	if ev.Metadata["model"] != "configured-model" {
+		t.Error("stored event metadata aliases the producer's map")
+	}
+	if _, err := got.Session.State().Get("model"); err == nil {
+		t.Error("event metadata unexpectedly updated session state")
+	}
 	if ev.NodeInfo == nil || ev.NodeInfo.Path != "ask_name" {
 		t.Errorf("NodeInfo not persisted: %#v", ev.NodeInfo)
 	}
