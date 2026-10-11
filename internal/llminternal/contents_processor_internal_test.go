@@ -29,6 +29,20 @@ import (
 	"google.golang.org/adk/v2/session"
 )
 
+// TestCloneEventMetadata guards against losing diagnostics during prompt-history
+// transformations and against a clone mutating the original stored annotations.
+func TestCloneEventMetadata(t *testing.T) {
+	original := &session.Event{Metadata: map[string]any{"model": "configured-model"}}
+	copied := cloneEvent(original)
+	if copied.Metadata["model"] != "configured-model" {
+		t.Fatal("cloned event lost metadata")
+	}
+	copied.Metadata["model"] = "changed"
+	if original.Metadata["model"] != "configured-model" {
+		t.Error("cloned metadata aliases the original map")
+	}
+}
+
 func TestDropOrphanedFunctionResponses_LogAndClone(t *testing.T) {
 	event := &session.Event{LLMResponse: model.LLMResponse{
 		ModelVersion: "model-version", FinishReason: genai.FinishReasonStop, TurnComplete: true,

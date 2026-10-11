@@ -130,6 +130,8 @@ func TestNewLoopAgent(t *testing.T) {
 			wantEvents: []*session.Event{
 				{
 					Author: "custom_agent_0",
+					// LLM-authored events retain their model annotation through the loop.
+					Metadata: map[string]any{"model": "fake-llm"},
 					LLMResponse: model.LLMResponse{
 						Content: genai.NewContentFromFunctionCall("exampleFunction", make(map[string]any), genai.RoleModel),
 					},
@@ -140,6 +142,8 @@ func TestNewLoopAgent(t *testing.T) {
 				},
 				{
 					Author: "custom_agent_0",
+					// LLM-authored events retain their model annotation through the loop.
+					Metadata: map[string]any{"model": "fake-llm"},
 					LLMResponse: model.LLMResponse{
 						Content: genai.NewContentFromFunctionResponse("exampleFunction", make(map[string]any), genai.RoleUser),
 					},
@@ -151,6 +155,8 @@ func TestNewLoopAgent(t *testing.T) {
 				},
 				{
 					Author: "custom_agent_0",
+					// LLM-authored events retain their model annotation through the loop.
+					Metadata: map[string]any{"model": "fake-llm"},
 					LLMResponse: model.LLMResponse{
 						Content: &genai.Content{
 							Parts: []*genai.Part{
@@ -175,6 +181,8 @@ func TestNewLoopAgent(t *testing.T) {
 			wantEvents: []*session.Event{
 				{
 					Author: "custom_agent_0",
+					// LLM-authored events retain their model annotation through the loop.
+					Metadata: map[string]any{"model": "fake-llm"},
 					LLMResponse: model.LLMResponse{
 						Content: genai.NewContentFromFunctionCall("exampleFunction", make(map[string]any), genai.RoleModel),
 					},
@@ -185,6 +193,8 @@ func TestNewLoopAgent(t *testing.T) {
 				},
 				{
 					Author: "custom_agent_0",
+					// LLM-authored events retain their model annotation through the loop.
+					Metadata: map[string]any{"model": "fake-llm"},
 					LLMResponse: model.LLMResponse{
 						Content: genai.NewContentFromFunctionResponse("exampleFunction", make(map[string]any), genai.RoleUser),
 					},

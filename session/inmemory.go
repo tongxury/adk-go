@@ -268,6 +268,8 @@ func (s *inMemoryService) AppendEvent(ctx context.Context, curSession Session, e
 		LLMResponse:        event.LLMResponse,
 		Output:             event.Output,
 		NodeInfo:           event.NodeInfo,
+		// Keep annotations in the canonical record without aliasing the producer's map.
+		Metadata: maps.Clone(event.Metadata),
 	}
 
 	// update the in-memory session service

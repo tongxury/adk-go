@@ -146,6 +146,16 @@ type Event struct {
 	// NodeInfo carries workflow-node metadata for events emitted
 	// inside a workflow. Nil for non-workflow events.
 	NodeInfo *NodeInfo `json:"nodeInfo,omitempty"`
+
+	// Metadata carries JSON-serializable event annotations independently of
+	// Actions.StateDelta: entries do not update session state. Nil means there
+	// are no annotations. LLM agents set "model" to their configured LLM's Name;
+	// ModelVersion remains the version reported by the response, including any
+	// fallback. Maps must not be mutated concurrently. Callers making shallow
+	// Event copies must clone Metadata before independently modifying entries;
+	// nested values are not automatically cloned.
+	// This Go extension adds event diagnostics beyond adk-python's Event fields.
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 // NodeInfo carries the per-event metadata identifying which node in

@@ -55,6 +55,8 @@ func fullyPopulatedEvent() *session.Event {
 		},
 		Output:   map[string]any{"summary": "ok", "risk_items": float64(3)},
 		NodeInfo: &session.NodeInfo{Path: "wf/planner", MessageAsOutput: true, OutputFor: []string{"wf"}},
+		// Event annotations must round-trip separately from response metadata and state changes.
+		Metadata: map[string]any{"model": "configured-model"},
 		Actions: session.EventActions{
 			StateDelta:        map[string]any{"stage": "drafted"},
 			ArtifactDelta:     map[string]int64{"report.pdf": 2},
@@ -86,7 +88,7 @@ func TestEventJSONKeys(t *testing.T) {
 	want := []string{
 		"actions", "author", "avgLogprobs", "branch", "content", "errorCode",
 		"errorMessage", "id", "interrupted", "invocationId", "isolationScope",
-		"longRunningToolIds", "modelVersion", "nodeInfo", "output", "partial",
+		"longRunningToolIds", "metadata", "modelVersion", "nodeInfo", "output", "partial",
 		"requestedInput", "routes", "timestamp", "turnComplete",
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
