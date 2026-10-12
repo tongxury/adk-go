@@ -584,39 +584,77 @@ func TestAgentTransfer_ProcessRequest(t *testing.T) {
 }
 
 func TestTransferToAgentToolRun(t *testing.T) {
+	// Build a mixed-mode declaration once for both allowed and rejected calls.
+	// Task/single-turn children must remain callable through delegation tools,
+	// while only the Chat child is permitted as a transfer target.
+	newAgent := func(name string, mode llmagent.Mode, subs ...agent.Agent) agent.Agent {
+		t.Helper()
+		a, err := llmagent.New(llmagent.Config{Name: name, Mode: mode, SubAgents: subs, DisallowTransferToParent: true, DisallowTransferToPeers: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return a
+	}
+	current := newAgent("root", llmagent.ModeChat,
+		newAgent("TestAgent", llmagent.ModeChat),
+		newAgent("task", llmagent.ModeTask),
+		newAgent("single", llmagent.ModeSingleTurn),
+	)
+	invCtx := icontext.NewInvocationContext(t.Context(), icontext.InvocationContextParams{Agent: current})
+	req := &model.LLMRequest{}
+	for _, err := range llminternal.AgentTransferRequestProcessor(invCtx, req, &llminternal.Flow{}) {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	curTool := req.Tools["transfer_to_agent"].(*llminternal.TransferToAgentTool)
+
 	t.Run("Success", func(t *testing.T) {
-		curTool := &llminternal.TransferToAgentTool{}
-
-		invCtx := icontext.NewInvocationContext(t.Context(), icontext.InvocationContextParams{})
 		ctx := agent.NewToolContext(invCtx, "", &session.EventActions{}, nil)
-
 		wantAgentName := "TestAgent"
 		args := map[string]any{"agent_name": wantAgentName}
-		if _, err := curTool.Run(ctx, args); err != nil {
-			t.Fatalf("Run(%v) failed: %v", args, err)
+		result, err := curTool.Run(ctx, args)
+		if err != nil || result["error"] != nil {
+			t.Fatal("allowed transfer failed")
 		}
 		if got, want := ctx.Actions().TransferToAgent, wantAgentName; got != want {
-			t.Errorf("Run(%v) did not set TransferToAgent, got %q, want %q", args, got, want)
+			t.Error("allowed transfer did not set its target")
+		}
+	})
+
+	t.Run("UnavailableTargets", func(t *testing.T) {
+		for _, target := range []string{"task", "single", "unknown", "root"} {
+			t.Run(target, func(t *testing.T) {
+				ctx := agent.NewToolContext(invCtx, "", &session.EventActions{}, nil)
+				result, err := curTool.Run(ctx, map[string]any{"agent_name": target})
+				if err != nil || result["error"] == nil || ctx.Actions().TransferToAgent != "" {
+					t.Fatal("unavailable target must return a correction without setting a transfer")
+				}
+				if available, ok := result["available_agents"].([]string); !ok || !slices.Equal(available, []string{"TestAgent"}) {
+					t.Error("correction must contain only the declared transfer targets")
+				}
+			})
 		}
 	})
 
 	t.Run("InvalidArguments", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			args map[string]any
+			args any
 		}{
 			{name: "NoAgentName", args: map[string]any{}},
 			{name: "NilArg", args: nil},
 			{name: "InvalidType", args: map[string]any{"agent_name": 123}},
 			{name: "InvalidValue", args: map[string]any{"agent_name": ""}},
+			{name: "NonMapArgs", args: "invalid"},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				curTool := &llminternal.TransferToAgentTool{}
 				ctx := agent.NewToolContext(icontext.NewInvocationContext(t.Context(), icontext.InvocationContextParams{}), "", nil, nil)
-				if got, err := curTool.Run(ctx, tc.args); err == nil {
-					t.Fatalf("Run(%v) = (%v, %v), want error", tc.args, got, err)
+				if _, err := curTool.Run(ctx, tc.args); err == nil {
+					t.Fatal("invalid arguments did not return an error")
 				}
 			})
 		}
