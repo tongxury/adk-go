@@ -177,7 +177,18 @@ func (t *TransferToAgentTool) Run(ctx agent.Context, args any) (map[string]any, 
 	}
 	agent, ok := m["agent_name"].(string)
 	if !ok || agent == "" {
-		return nil, fmt.Errorf("empty agent_name: %v", args)
+		return nil, fmt.Errorf("agent_name must be a non-empty string")
+	}
+	// Enum constraints do not guarantee that the model picks an allowed target.
+	// Unlike adk-python's tools/transfer_to_agent_tool.py:58, validate before
+	// setting the action: Go excludes Task/single-turn targets from transfers.
+	// Return a tool response so the model can correct its call and continue.
+	availableAgents := t.enums()
+	if !slices.Contains(availableAgents, agent) {
+		return map[string]any{
+			"error":            "The requested agent is not an allowed transfer target. Use an available delegation tool for task or single-turn agents, or choose a target from available_agents.",
+			"available_agents": availableAgents,
+		}, nil
 	}
 	ctx.Actions().TransferToAgent = agent
 	return map[string]any{}, nil
