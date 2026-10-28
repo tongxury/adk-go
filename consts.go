@@ -109,8 +109,11 @@ If neither you nor the other agents are best for the question, transfer to your 
 	SetModelResponseToolDescription = "Set your final response using the required output schema. Use this tool to provide your final structured answer instead of outputting text directly."
 
 	// FinishTask 相关常量控制委派任务完成、参数校验失败反馈和成功结果。
-	FinishTaskToolDescription   = "Signal that this agent has completed its delegated task. Call this when you have finished your delegated task."
-	FinishTaskOutputDescription = "A brief summary of what the agent accomplished."
+	// task 模式仅将 finish_task 的参数作为结果回传，普通文本消息不会自动合并给父级。
+	// 因此字段描述和系统指令都要求在参数中提交完整成品，避免模型把正文留在普通消息里，
+	// 却只回传“已完成”的摘要，导致父级拿不到脚本正文、生成结果或下载链接。
+	FinishTaskToolDescription   = "Signal that this agent has completed its delegated task. Call this when you have finished your delegated task, passing the complete final deliverable in the parameters."
+	FinishTaskOutputDescription = "The complete final deliverable for the delegated task, including all requested content and exact generated image, video and download URLs. Do not replace the deliverable with a summary of what you accomplished."
 	FinishTaskOutputDataSuffix  = " Pass the required output data in the parameters."
 	FinishTaskInstruction       = `
 Do NOT call 'finish_task' prematurely. Use your available tools to
@@ -118,6 +121,12 @@ fully complete every aspect of the delegated task first. If the
 task is unclear, ask the user for clarification before proceeding.
 Once the task is fully complete, call 'finish_task' by itself with
 no accompanying text output.
+Put the complete final deliverable in the tool parameters, following the declared output schema.
+When using the default schema, put the full answer in 'result'.
+The delegating agent receives only these parameters as the task result;
+it does not automatically receive your ordinary text messages.
+Include all requested content and preserve generated image, video and download URLs exactly.
+Do not replace requested deliverables with a summary of what you accomplished.
 `
 	FinishTaskValidationErrorTemplate = "Invoking `%s()` failed due to validation errors:\n%s\nYou could retry calling this tool, but it is IMPORTANT for you to provide all the mandatory parameters with correct types."
 	FinishTaskSuccessResult           = "Task completed."
