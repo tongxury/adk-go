@@ -112,8 +112,10 @@ If neither you nor the other agents are best for the question, transfer to your 
 	// task 模式仅将 finish_task 的参数作为结果回传，普通文本消息不会自动合并给父级。
 	// 因此字段描述和系统指令都要求在参数中提交完整成品，避免模型把正文留在普通消息里，
 	// 却只回传“已完成”的摘要，导致父级拿不到脚本正文、生成结果或下载链接。
-	FinishTaskToolDescription   = "Signal that this agent has completed its delegated task. Call this when you have finished your delegated task, passing the complete final deliverable in the parameters."
-	FinishTaskOutputDescription = "The complete final deliverable for the delegated task, including all requested content and exact generated image, video and download URLs. Do not replace the deliverable with a summary of what you accomplished."
+	// 同样要求交接用户的最新需求、替代旧要求的修改和真实确认状态，让父级理解成品
+	// 为什么偏离最初委派；确认只陈述已发生的事实，不因此强制新增确认步骤或改动输出 schema。
+	FinishTaskToolDescription   = "Signal that this agent has completed its delegated task. Call this when you have finished your delegated task, passing the complete final deliverable together with the user's latest requirements, revisions and actual confirmation status in the parameters, within the declared output schema."
+	FinishTaskOutputDescription = "The complete final deliverable for the delegated task, preceded by a concise handoff of the user's latest requirements, changes replacing the original request and actual confirmation status. Include all requested content and exact generated image, video and download URLs. Do not replace the deliverable with a summary of what you accomplished."
 	FinishTaskOutputDataSuffix  = " Pass the required output data in the parameters."
 	FinishTaskInstruction       = `
 Do NOT call 'finish_task' prematurely. Use your available tools to
@@ -125,6 +127,10 @@ Put the complete final deliverable in the tool parameters, following the declare
 When using the default schema, put the full answer in 'result'.
 The delegating agent receives only these parameters as the task result;
 it does not automatically receive your ordinary text messages.
+In the default 'result', briefly state the user's final requirements, which original requirements the user changed, and what the user actually confirmed before presenting the complete deliverable. Use the user's language.
+For example, if the user changed the request to a cat script and explicitly approved that draft: "Confirmed with the user. Final user request: a cat script, replacing the originally requested dog script. The user approved the cat draft."
+Only claim user confirmation when it actually occurred. Otherwise state that confirmation was not obtained, and identify any outstanding decisions. Do not request extra confirmation solely for this handoff.
+For custom output schemas, include this handoff only in existing fields that can represent it; do not add fields, change types or violate the schema.
 Include all requested content and preserve generated image, video and download URLs exactly.
 Do not replace requested deliverables with a summary of what you accomplished.
 `
